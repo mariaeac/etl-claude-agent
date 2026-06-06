@@ -4,11 +4,12 @@ import time
 import argparse
 from pathlib import Path
 from datetime import date, datetime
+from typing import Optional
 
 import pandas as pd
 import duckdb
 
-DB_PATH = Path(__file__).parent.parent / "etl.duckdb"
+DB_PATH = Path("etl.duckdb")
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
 PROCESSED_DIR = Path(__file__).parent.parent / "data" / "processed"
 
@@ -42,7 +43,7 @@ def deduplicate_columns(cols: list[str]) -> list[str]:
     return result
 
 
-def try_parse_br_number(value: str) -> float | None:
+def try_parse_br_number(value: str) -> Optional[float]:
     """Convert Brazilian-formatted number strings like '1.234,56' to float."""
     s = value.strip()
     if BR_NUMBER_RE.match(s):
@@ -50,7 +51,7 @@ def try_parse_br_number(value: str) -> float | None:
     return None
 
 
-def try_parse_date(value: str) -> str | None:
+def try_parse_date(value: str) -> Optional[str]:
     formats = [
         "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%m/%d/%Y",
         "%d/%m/%y", "%Y/%m/%d", "%d.%m.%Y", "%B %d, %Y",
@@ -167,10 +168,9 @@ def transform(df: pd.DataFrame) -> tuple[pd.DataFrame, dict, int]:
 def load(df: pd.DataFrame, table_name: str) -> None:
     con = duckdb.connect(str(DB_PATH))
     try:
+        con.register("_df_tmp", df)
         con.execute(f'DROP TABLE IF EXISTS "{table_name}"')
-        con.execute(
-            f'CREATE TABLE "{table_name}" AS SELECT * FROM df'
-        )
+        con.execute(f'CREATE TABLE "{table_name}" AS SELECT * FROM _df_tmp')
     finally:
         con.close()
 
@@ -208,6 +208,7 @@ def build_report(
     schema_lines = []
     for col in df.columns:
         schema_lines.append(f"| {col} | {df[col].dtype} |")
+    schema_table = "\n".join(schema_lines)
 
     issues_section = []
     for col, notes in issues.items():
@@ -253,7 +254,7 @@ def build_report(
 
 | Coluna | Tipo |
 |---|---|
-{"".join(f"{line}\n" for line in schema_lines)}
+{schema_table}
 """
     return report.strip()
 
