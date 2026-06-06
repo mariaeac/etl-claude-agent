@@ -176,7 +176,14 @@ def load(df: pd.DataFrame, table_name: str) -> None:
 
 
 def table_exists(table_name: str) -> bool:
-    con = duckdb.connect(str(DB_PATH))
+    try:
+        con = duckdb.connect(str(DB_PATH))
+    except duckdb.IOException:
+        print(
+            f"Erro: não foi possível abrir '{DB_PATH}' — o arquivo está em uso por outro programa.\n"
+            "Feche o DuckDB (ex: extensão do VSCode) antes de rodar o pipeline."
+        )
+        sys.exit(1)
     try:
         result = con.execute(
             "SELECT COUNT(*) FROM information_schema.tables "
