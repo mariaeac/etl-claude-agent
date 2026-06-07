@@ -12,7 +12,6 @@ venv/
 
 # Pipeline outputs
 data/
-reports/
 
 # Editor
 .vscode/
