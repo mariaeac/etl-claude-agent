@@ -1,5 +1,6 @@
 import sys
 import subprocess
+from datetime import datetime
 from pathlib import Path
 
 import duckdb
@@ -57,6 +58,13 @@ def main() -> None:
         else:
             print(f"  ERRO: exit code {result.returncode}")
             failed += 1
+            failures_log = Path("reports/failures.log")
+            failures_log.parent.mkdir(parents=True, exist_ok=True)
+            with failures_log.open("a", encoding="utf-8") as f:
+                f.write(
+                    f"{datetime.now().isoformat(timespec='seconds')} | "
+                    f"{csv_path.name} | exit_code={result.returncode}\n"
+                )
 
     print(f"\n{'='*50}")
     print(f"  Encontrados  : {len(csv_files)}")

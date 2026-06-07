@@ -40,3 +40,17 @@ Deve conter obrigatoriamente:
 - Problemas detectados e corrigidos por coluna
 - Schema final da tabela gravada no DuckDB
 - Tempo total de execução
+
+## Comportamento do agente
+- Se encontrar o mesmo erro duas vezes consecutivas no mesmo arquivo,
+  parar e reportar ao usuário em vez de tentar corrigir novamente
+- Nunca executar DROP TABLE, DELETE ou operações destrutivas sem
+  confirmação explícita do usuário nessa sessão
+- Nunca sobrescrever arquivos em data/raw/
+- Reportar ao usuário sempre que descartar mais de 40% das linhas de um arquivo
+
+## Escopo permitido
+- Operar apenas dentro da pasta do projeto
+- Ler e escrever apenas em: data/, scripts/, reports/
+- Não acessar arquivos fora desse escopo sem confirmação explícita
+- Não fazer chamadas de rede além de instalar pacotes do requirements.txt

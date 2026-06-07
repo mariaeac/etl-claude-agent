@@ -15,6 +15,7 @@ PROCESSED_DIR = Path(__file__).parent.parent / "data" / "processed"
 
 NULL_THRESHOLD = 0.30
 HIGH_NULL_LOG_THRESHOLD = 0.80
+MAX_FILE_SIZE_MB = 200
 
 BR_NUMBER_RE = re.compile(r"^\d{1,3}(\.\d{3})*(,\d+)?$")
 
@@ -276,11 +277,20 @@ def main() -> None:
     args = parser.parse_args()
 
     csv_path = Path(args.csv_path).resolve()
+    raw_dir = (Path(__file__).parent.parent / "data" / "raw").resolve()
+    if not str(csv_path).startswith(str(raw_dir) + "/"):
+        print(
+            f"Erro: o arquivo precisa estar dentro de data/raw/.\n"
+            f"  Recebido : {csv_path}\n"
+            f"  Permitido: {raw_dir}/"
+        )
+        sys.exit(1)
+
     if not csv_path.exists():
         print(f"Erro: arquivo não encontrado — {csv_path}")
         sys.exit(1)
 
-    table_name = csv_path.stem
+    table_name = re.sub(r"[^a-z0-9_]", "_", csv_path.stem.lower()).strip("_") or "tabela_sem_nome"
 
     if table_exists(table_name):
         print(
@@ -288,6 +298,14 @@ def main() -> None:
             "Remova-a manualmente para reprocessar."
         )
         sys.exit(0)
+
+    file_size_mb = csv_path.stat().st_size / (1024 * 1024)
+    if file_size_mb > MAX_FILE_SIZE_MB:
+        print(
+            f"Erro: arquivo muito grande — {file_size_mb:.1f} MB "
+            f"(limite: {MAX_FILE_SIZE_MB} MB)."
+        )
+        sys.exit(1)
 
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
@@ -303,6 +321,24 @@ def main() -> None:
 
     print(f"[Load] Gravando tabela '{table_name}' no DuckDB ...")
     load(df, table_name)
+
+    con = duckdb.connect(str(DB_PATH), read_only=True)
+    try:
+        db_count = con.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()[0]
+    finally:
+        con.close()
+
+    if db_count == 0:
+        raise RuntimeError(
+            f"Validação falhou: a tabela '{table_name}' foi gravada mas contém 0 linhas."
+        )
+    elif db_count < rows_in * 0.5:
+        print(
+            f"[AVISO] Apenas {db_count}/{rows_in} linhas confirmadas no banco "
+            f"({db_count / rows_in:.0%} do total recebido)."
+        )
+    else:
+        print(f"[OK] {db_count} linhas confirmadas no banco.")
 
     processed_path = PROCESSED_DIR / csv_path.name
     df.to_csv(processed_path, index=False)
