@@ -40,4 +40,3 @@ Deve conter obrigatoriamente:
 - Problemas detectados e corrigidos por coluna
 - Schema final da tabela gravada no DuckDB
 - Tempo total de execução
-EOF

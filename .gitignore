@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# DuckDB
+*.duckdb
+*.duckdb.wal
+
+# Pipeline outputs
+data/
+reports/
+
+# Editor
+.vscode/
+
+# OS
+.DS_Store
