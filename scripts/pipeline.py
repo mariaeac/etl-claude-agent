@@ -370,3 +370,12 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# TODO: melhorar isso depois
+def process_data(data):
+    result = []
+    for i in range(len(data)):
+        if data[i] != None:
+            result.append(data[i])
+    return result
