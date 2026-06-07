@@ -94,6 +94,26 @@ Generated report excerpt (`reports/relatorio_locode_20260606.md`):
 
 ---
 
+## Security & Guardrails
+
+### Input validation
+
+| Check | Behavior |
+|---|---|
+| **Path traversal prevention** | Files outside `data/raw/` are rejected before any processing — resolved absolute paths are compared with `str.startswith()` |
+| **SQL injection** | Table name is derived from the filename and sanitized with `re.sub(r"[^a-z0-9_]", "_", ...)` before any query is executed |
+| **File size limit** | Files above 200 MB are rejected before loading into memory (`csv_path.stat().st_size` checked upfront) |
+
+### Runtime guardrails
+
+| Check | Behavior |
+|---|---|
+| **Output validation** | After load, the pipeline queries `COUNT(*)` on the written table with `read_only=True`; raises `RuntimeError` if 0 rows, warns if fewer than 50% of input rows were written |
+| **Failure logging** | Processing failures from `run_all.py` are appended to `reports/failures.log` with ISO timestamp and exit code |
+| **Agent scope** | `CLAUDE.md` defines filesystem boundaries (`data/`, `scripts/`, `reports/` only) and agent behavior, including a rule to stop and report after two consecutive errors on the same file |
+
+---
+
 ## Project structure
 
 ```
